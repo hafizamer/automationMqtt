@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP8266 Control</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      text-align: center; 
+      margin-top: 50px; 
+    }
+    button { 
+      padding: 15px 25px; 
+      font-size: 20px; 
+      color: white; 
+      background-color: #007BFF; 
+      border: none; 
+      border-radius: 5px; 
+      cursor: pointer; 
+      margin: 10px; 
+    }
+    button:hover { 
+      background-color: #0056b3; 
+    }
+    
+    .qr-code {
+      margin: 20px auto; /* Center and space around QR code */
+      max-width: 150px; /* Adjust size to fit better with graphs */
+    }
+    .qr-code img {
+      max-width: 100%; /* Responsive width */
+      height: auto; /* Maintain aspect ratio */
+      border: 2px solid #007BFF; /* Optional border */
+      border-radius: 10px; /* Optional rounded corners */
+    }
+
+    .graphs-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 20px auto; /* Center and space around the graphs container */
+    }
+
+    .graph {
+      margin: 10px; /* Space between graphs */
+      border: 2px solid #007BFF; /* Border for graphs */
+      border-radius: 10px; /* Optional rounded corners */
+      padding: 10px; /* Padding inside the border */
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Optional shadow for depth */
+      flex: 1;
+      max-width: 500px; /* Adjust width to fit with QR code */
+    }
+
+    iframe {
+      width: 100%;
+      height: 300px; /* Set a fixed height for consistency */
+      border: none;
+    }
+
+    @media (max-width: 768px) {
+      .graphs-container {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+  <h1>ESP8266 Control</h1>
+  
+  <!-- Buttons for LED Control -->
+  <button onclick="toggleLED('ON')">Turn ON Control</button>
+  <button onclick="toggleLED('OFF')">Turn OFF Control</button>
+  
+  <h2>Distance and Darkness Level</h2>
+  <div id="data">Loading...</div>
+  
+  <h2>Graphs and QR Code</h2>
+  <div class="graphs-container">
+    <div class="graph">
+      <h3>Distance Graph</h3>
+      <iframe src="thingspeak graph"></iframe>
+    </div>
+
+    <div class="qr-code">
+      <img src="frame.png" alt="QR Code">
+    </div>
+
+    <div class="graph">
+      <h3>Darkness Graph</h3>
+      <iframe src="thingspeak graph"></iframe>
+    </div>
+  </div>
+
+  <script>
+    // Replace with your MQTT broker WebSocket URL
+    const broker = ''; //broker
+    const topic = 'esp8266/led';
+    const options = {
+      username: '', // If required
+      password: ''  // If required
+    };
+
+    let client;
+
+    function setupMQTT() {
+      client = mqtt.connect(broker, options);
+
+      client.on('connect', function () {
+        console.log('Connected to broker');
+      });
+
+      client.on('error', function (error) {
+        console.error('Connection error:', error);
+      });
+    }
+
+    setupMQTT(); // Initialize the MQTT client
+
+    function toggleLED(state) {
+      if (!client || !client.connected) {
+        console.error('MQTT client not connected');
+        return;
+      }
+
+      client.publish(topic, state, {}, function (error) {
+        if (error) {
+          console.error('Publish error:', error);
+        } else {
+          console.log('Message sent:', state);
+        }
+      });
+    }
+
+    function fetchData() {
+      fetch('')//api
+        .then(response => response.json())
+        .then(data => {
+          const latestEntry = data.feeds[0];
+          const dataDiv = document.getElementById('data');
+          dataDiv.innerHTML = `Distance: ${latestEntry.field1}, Darkness: ${latestEntry.field2}`;
+        })
+        .catch(error => {
+          console.error('Error fetching data:', error);
+          document.getElementById('data').innerHTML = 'Error loading data';
+        });
+    }
+
+    setInterval(fetchData, 10000); // Fetch data every 10 seconds
+
+    // Initial data fetch
+    fetchData();
+  </script>
+</body>
+</html>
+
